@@ -1,5 +1,5 @@
-#define MAJORV "0"
-#define MINORV "1"
-#define SVNVERSION "5"
+#define MAJORV "1"
+#define MINORV "0"
+#define SVNVERSION "v1.0.1"
 
 
