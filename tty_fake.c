@@ -137,7 +137,8 @@ int main(int argc,char *argv[])
 
 	symlink(pts,ttyfake);
 	chmod(pts,00777);
-
+	
+	int counter = 0;
 
 	for (;;) {
 		pfd[0].fd = ptmx;
@@ -145,23 +146,33 @@ int main(int argc,char *argv[])
 		pfd[1].fd = fd;
 		pfd[1].events = POLLIN;
 		pollret = poll(pfd, 2, 1000);
+		if(counter > 5){
+			exit(-1);
+		}
+			
 		if (pollret < 0) {
 			fprintf(stderr, "Poll error: %s\n", strerror(errno));
-			exit(1);
+			++counter;
+			continue;
 		}
 		if (pollret == 0)
 			continue;
 
 		if ( (pfd[0].revents & POLLHUP || pfd[0].revents & POLLERR || pfd[0].revents &POLLNVAL) ||
-			(pfd[1].revents & POLLHUP || pfd[1].revents & POLLERR || pfd[1].revents &POLLNVAL) )
-			exit(1);
+			(pfd[1].revents & POLLHUP || pfd[1].revents & POLLERR || pfd[1].revents &POLLNVAL) ){
+				fprintf(stderr, "Poll error: %s\n", strerror(errno));
+				++counter;
+				continue;
+			}
+			
 		if (pfd[0].revents & POLLIN) {
 			r = read(ptmx, buffer, BUFFER_SIZE);
 			pfd[1].events = POLLOUT;
 			pollret = poll(&pfd[1], 1, 50);	
 			if (pollret < 0) {
 				fprintf(stderr, "Poll error: %s\n", strerror(errno));
-				exit(1);
+				++counter;
+				continue;
 			}
 			if(pfd[1].revents & POLLOUT) {
 				w = write(fd, buffer, r);
@@ -174,11 +185,13 @@ int main(int argc,char *argv[])
 			pollret = poll(&pfd[0], 1, 50);	
 			if (pollret < 0) {
 				fprintf(stderr, "Poll error: %s\n", strerror(errno));
-				exit(1);
+				++counter;
+				continue;
 			}
 			if(pfd[0].revents & POLLOUT) {
 				w = write(ptmx, buffer, r);
 			}
 		}
+		counter = 0;
 	}		
 }
